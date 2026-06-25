@@ -3,6 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../../core/providers/theme_provider.dart';
+import '../../../core/themes/app_colors.dart';
+import '../../../core/themes/app_spacing.dart';
+import '../../../core/themes/app_typography.dart';
+import '../../../core/widgets/cards/premium_card.dart';
+import '../../../core/widgets/dialogs/premium_dialog.dart';
 
 class SettingsView extends ConsumerWidget {
   const SettingsView({super.key});
@@ -12,129 +17,136 @@ class SettingsView extends ConsumerWidget {
     final authState = ref.watch(authProvider);
     final themeMode = ref.watch(themeModeProvider);
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     final user = authState.user;
 
     return Scaffold(
       body: SingleChildScrollView(
-        padding: EdgeInsets.all(16.r),
+        padding: EdgeInsets.all(AppSpacing.md),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // User profile card
             if (user != null)
-              Card(
-                child: Padding(
-                  padding: EdgeInsets.all(16.r),
-                  child: Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 30.r,
-                        backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
-                        child: Icon(Icons.person, size: 36.r, color: theme.colorScheme.primary),
-                      ),
-                      SizedBox(width: 16.w),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              user.name,
-                              style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold),
+              PremiumCard(
+                padding: EdgeInsets.all(AppSpacing.lg),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 36.r,
+                      backgroundColor: AppColors.emeraldGreen.withOpacity(0.1),
+                      child: Icon(Icons.person_outline, size: 36.r, color: AppColors.emeraldGreen),
+                    ),
+                    SizedBox(width: AppSpacing.lg),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            user.name,
+                            style: AppTypography.headline,
+                          ),
+                          Text(
+                            '@${user.username}',
+                            style: AppTypography.bodyMedium.copyWith(color: AppColors.textLight),
+                          ),
+                          SizedBox(height: AppSpacing.sm),
+                          Container(
+                            padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                            decoration: BoxDecoration(
+                              color: user.isAdmin
+                                  ? AppColors.danger.withOpacity(0.1)
+                                  : AppColors.info.withOpacity(0.1),
+                              borderRadius: AppRadius.sm,
                             ),
-                            Text(
-                              '@${user.username}',
-                              style: TextStyle(fontSize: 12.sp, color: Colors.grey),
-                            ),
-                            SizedBox(height: 4.h),
-                            Container(
-                              padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
-                              decoration: BoxDecoration(
-                                color: user.isAdmin
-                                    ? Colors.red.withOpacity(0.1)
-                                    : Colors.blue.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(10.r),
-                              ),
-                              child: Text(
-                                user.isAdmin ? 'ADMINISTRATOR' : 'FAMILY MEMBER',
-                                style: TextStyle(
-                                  fontSize: 9.sp,
-                                  color: user.isAdmin ? Colors.red : Colors.blue,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                            child: Text(
+                              user.isAdmin ? 'ADMINISTRATOR' : 'FAMILY MEMBER',
+                              style: AppTypography.caption.copyWith(
+                                color: user.isAdmin ? AppColors.danger : AppColors.info,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1.2,
                               ),
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
-            SizedBox(height: 24.h),
+            SizedBox(height: AppSpacing.xl),
 
             // Settings Group
             Text(
               'Preferences',
-              style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.bold, color: Colors.grey),
+              style: AppTypography.titleLarge,
             ),
-            SizedBox(height: 8.h),
-            Card(
-              child: Column(
-                children: [
-                  SwitchListTile(
-                    title: const Text('Dark Mode Display'),
-                    subtitle: const Text('Enable midnight slate colors'),
-                    secondary: const Icon(Icons.dark_mode_outlined),
-                    value: themeMode == ThemeMode.dark,
-                    onChanged: (_) {
-                      ref.read(themeModeProvider.notifier).toggleTheme();
-                    },
+            SizedBox(height: AppSpacing.md),
+            PremiumCard(
+              padding: EdgeInsets.zero,
+              child: SwitchListTile.adaptive(
+                contentPadding: EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+                title: Text('Dark Mode Display', style: AppTypography.titleMedium),
+                subtitle: Text('Enable midnight slate colors', style: AppTypography.caption),
+                secondary: Container(
+                  padding: EdgeInsets.all(8.r),
+                  decoration: BoxDecoration(
+                    color: isDark ? AppColors.white.withOpacity(0.1) : AppColors.textLight.withOpacity(0.1),
+                    borderRadius: AppRadius.sm,
                   ),
-                ],
+                  child: Icon(Icons.dark_mode_outlined, color: isDark ? AppColors.white : AppColors.textDark),
+                ),
+                activeColor: AppColors.emeraldGreen,
+                value: themeMode == ThemeMode.dark,
+                onChanged: (_) {
+                  ref.read(themeModeProvider.notifier).toggleTheme();
+                },
               ),
             ),
-            SizedBox(height: 24.h),
+            SizedBox(height: AppSpacing.xl),
 
             // Session Group
             Text(
               'Session Management',
-              style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.bold, color: Colors.grey),
+              style: AppTypography.titleLarge,
             ),
-            SizedBox(height: 8.h),
-            Card(
+            SizedBox(height: AppSpacing.md),
+            PremiumCard(
+              padding: EdgeInsets.zero,
+              onTap: () async {
+                final confirm = await PremiumDialog.show<bool>(
+                  context: context,
+                  title: 'Confirm Sign Out',
+                  message: 'Are you sure you want to sign out? Your session credentials will be cleared.',
+                  primaryActionText: 'Sign Out',
+                  secondaryActionText: 'Cancel',
+                  icon: Icons.logout,
+                  isDestructive: true,
+                  onPrimaryAction: () => Navigator.pop(context, true),
+                );
+                
+                if (confirm == true) {
+                  await ref.read(authProvider.notifier).logout();
+                }
+              },
               child: ListTile(
-                leading: const Icon(Icons.logout, color: Colors.red),
-                title: const Text('Sign Out', style: TextStyle(color: Colors.red)),
-                subtitle: const Text('Sign out of your active Vattify session'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () async {
-                  final confirm = await showDialog<bool>(
-                    context: context,
-                    builder: (context) {
-                      return AlertDialog(
-                        title: const Text('Confirm Sign Out'),
-                        content: const Text('Are you sure you want to sign out? Your credentials cached locally will be cleared.'),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context, false),
-                            child: const Text('Cancel'),
-                          ),
-                          ElevatedButton(
-                            onPressed: () => Navigator.pop(context, true),
-                            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
-                            child: const Text('Sign Out'),
-                          ),
-                        ],
-                      );
-                    },
-                  );
-                  if (confirm == true) {
-                    await ref.read(authProvider.notifier).logout();
-                  }
-                },
+                contentPadding: EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+                leading: Container(
+                  padding: EdgeInsets.all(8.r),
+                  decoration: BoxDecoration(
+                    color: AppColors.danger.withOpacity(0.1),
+                    borderRadius: AppRadius.sm,
+                  ),
+                  child: const Icon(Icons.logout, color: AppColors.danger),
+                ),
+                title: Text('Sign Out', style: AppTypography.titleMedium.copyWith(color: AppColors.danger)),
+                subtitle: Text('Sign out of your active Vattify session', style: AppTypography.caption),
+                trailing: Icon(Icons.chevron_right, color: AppColors.textLight, size: 24.r),
               ),
             ),
+            
+            SizedBox(height: 100.h),
           ],
         ),
       ),

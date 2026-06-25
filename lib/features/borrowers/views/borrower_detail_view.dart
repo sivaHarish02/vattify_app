@@ -6,6 +6,12 @@ import 'package:intl/intl.dart';
 import '../providers/borrowers_provider.dart';
 import '../../loans/providers/loans_provider.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../../core/themes/app_colors.dart';
+import '../../../core/themes/app_spacing.dart';
+import '../../../core/themes/app_typography.dart';
+import '../../../core/widgets/cards/premium_card.dart';
+import '../../../core/widgets/inputs/premium_text_field.dart';
+import '../../../core/widgets/buttons/premium_button.dart';
 
 class BorrowerDetailView extends ConsumerWidget {
   final int borrowerId;
@@ -26,18 +32,24 @@ class BorrowerDetailView extends ConsumerWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
-      ),
+      backgroundColor: Colors.transparent,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setModalState) {
-            return Padding(
+            final theme = Theme.of(context);
+            final isDark = theme.brightness == Brightness.dark;
+
+            return Container(
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.darkSurfaceElevated : AppColors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
+                boxShadow: AppShadows.premiumHeavy,
+              ),
               padding: EdgeInsets.only(
-                left: 16.w,
-                right: 16.w,
-                top: 16.h,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 16.h,
+                left: AppSpacing.lg,
+                right: AppSpacing.lg,
+                top: AppSpacing.lg,
+                bottom: MediaQuery.of(context).viewInsets.bottom + AppSpacing.xl,
               ),
               child: Form(
                 key: formKey,
@@ -46,81 +58,126 @@ class BorrowerDetailView extends ConsumerWidget {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Text(
-                        'Create New Loan',
-                        style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
-                      ),
-                      SizedBox(height: 16.h),
-                      TextFormField(
-                        controller: amountController,
-                        decoration: const InputDecoration(
-                          labelText: 'Loan Amount (Principal)',
-                          prefixIcon: Icon(Icons.currency_rupee),
+                      Center(
+                        child: Container(
+                          width: 40.w,
+                          height: 4.h,
+                          decoration: BoxDecoration(
+                            color: isDark ? AppColors.darkGrey : AppColors.lightGrey,
+                            borderRadius: AppRadius.circular,
+                          ),
                         ),
+                      ),
+                      SizedBox(height: AppSpacing.lg),
+                      Text('Create New Loan', style: AppTypography.headline),
+                      SizedBox(height: AppSpacing.xl),
+                      
+                      PremiumTextField(
+                        label: 'Loan Amount (Principal)',
+                        controller: amountController,
+                        prefixIcon: const Icon(Icons.currency_rupee),
                         keyboardType: TextInputType.number,
                         validator: (v) => v == null || double.tryParse(v) == null ? 'Enter a valid amount' : null,
                       ),
-                      SizedBox(height: 12.h),
-                      TextFormField(
+                      PremiumTextField(
+                        label: 'Monthly Interest Rate (%)',
                         controller: rateController,
-                        decoration: const InputDecoration(
-                          labelText: 'Monthly Interest Rate (%)',
-                          prefixIcon: Icon(Icons.percent),
-                          hintText: 'e.g. 3',
-                        ),
+                        prefixIcon: const Icon(Icons.percent),
+                        hint: 'e.g. 3',
                         keyboardType: TextInputType.number,
                         validator: (v) => v == null || double.tryParse(v) == null ? 'Enter a valid rate' : null,
                       ),
-                      SizedBox(height: 12.h),
-                      DropdownButtonFormField<String>(
-                        value: interestType,
-                        decoration: const InputDecoration(
-                          labelText: 'Interest Type',
-                          prefixIcon: Icon(Icons.calculate),
+                      
+                      Padding(
+                        padding: EdgeInsets.only(bottom: AppSpacing.md),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Interest Type', style: AppTypography.titleMedium.copyWith(fontSize: 13.sp)),
+                            SizedBox(height: AppSpacing.sm),
+                            DropdownButtonFormField<String>(
+                              value: interestType,
+                              decoration: InputDecoration(
+                                prefixIcon: const Icon(Icons.calculate_outlined),
+                                filled: true,
+                                fillColor: isDark ? AppColors.darkSurfaceElevated : AppColors.softWhite,
+                                contentPadding: EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 16.h),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: AppRadius.md,
+                                  borderSide: BorderSide(color: isDark ? AppColors.darkGrey : AppColors.lightGrey),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: AppRadius.md,
+                                  borderSide: const BorderSide(color: AppColors.emeraldGreen, width: 2),
+                                ),
+                              ),
+                              items: const [
+                                DropdownMenuItem(value: 'FIXED', child: Text('Fixed Rate')),
+                                DropdownMenuItem(value: 'REDUCING', child: Text('Reducing Balance')),
+                              ],
+                              onChanged: (v) {
+                                if (v != null) {
+                                  setModalState(() {
+                                    interestType = v;
+                                  });
+                                }
+                              },
+                            ),
+                          ],
                         ),
-                        items: const [
-                          DropdownMenuItem(value: 'FIXED', child: Text('Fixed Rate')),
-                          DropdownMenuItem(value: 'REDUCING', child: Text('Reducing Balance')),
-                        ],
-                        onChanged: (v) {
-                          if (v != null) {
-                            setModalState(() {
-                              interestType = v;
-                            });
-                          }
-                        },
                       ),
-                      SizedBox(height: 12.h),
-                      ListTile(
-                        leading: const Icon(Icons.calendar_today),
-                        title: Text('Loan Start Date: ${DateFormat('dd MMM yyyy').format(selectedDate)}'),
-                        trailing: TextButton(
-                          onPressed: () async {
-                            final pick = await showDatePicker(
-                              context: context,
-                              initialDate: selectedDate,
-                              firstDate: DateTime(2000),
-                              lastDate: DateTime(2100),
-                            );
-                            if (pick != null) {
-                              setModalState(() {
-                                selectedDate = pick;
-                              });
-                            }
-                          },
-                          child: const Text('Change'),
+                      
+                      PremiumCard(
+                        padding: EdgeInsets.all(AppSpacing.sm),
+                        child: ListTile(
+                          contentPadding: EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+                          leading: Icon(Icons.calendar_today, color: AppColors.textLight, size: 24.r),
+                          title: Text('Loan Start Date', style: AppTypography.caption),
+                          subtitle: Text(DateFormat('dd MMM yyyy').format(selectedDate), style: AppTypography.titleMedium),
+                          trailing: PremiumButton(
+                            text: 'Change',
+                            type: ButtonType.text,
+                            isFullWidth: false,
+                            onPressed: () async {
+                              final pick = await showDatePicker(
+                                context: context,
+                                initialDate: selectedDate,
+                                firstDate: DateTime(2000),
+                                lastDate: DateTime(2100),
+                                builder: (context, child) {
+                                  return Theme(
+                                    data: Theme.of(context).copyWith(
+                                      colorScheme: ColorScheme.light(
+                                        primary: AppColors.emeraldGreen,
+                                        onPrimary: AppColors.white,
+                                        onSurface: isDark ? AppColors.white : AppColors.textDark,
+                                      ),
+                                    ),
+                                    child: child!,
+                                  );
+                                },
+                              );
+                              if (pick != null) {
+                                setModalState(() {
+                                  selectedDate = pick;
+                                });
+                              }
+                            },
+                          ),
                         ),
                       ),
-                      SizedBox(height: 12.h),
-                      TextFormField(
+                      SizedBox(height: AppSpacing.md),
+                      
+                      PremiumTextField(
+                        label: 'Remarks / Purpose (Optional)',
                         controller: remarksController,
-                        decoration: const InputDecoration(
-                          labelText: 'Remarks / Purpose (Optional)',
-                          prefixIcon: Icon(Icons.chat_bubble_outline),
-                        ),
+                        prefixIcon: const Icon(Icons.chat_bubble_outline),
                       ),
-                      SizedBox(height: 20.h),
-                      ElevatedButton(
+                      SizedBox(height: AppSpacing.xl),
+                      
+                      PremiumButton(
+                        text: 'Create Loan',
+                        icon: Icons.check_circle_outline,
                         onPressed: () async {
                           if (formKey.currentState!.validate()) {
                             final success = await ref.read(loansProvider.notifier).createLoan(
@@ -140,7 +197,6 @@ class BorrowerDetailView extends ConsumerWidget {
                             }
                           }
                         },
-                        child: const Text('Create Loan'),
                       ),
                     ],
                   ),
@@ -164,18 +220,24 @@ class BorrowerDetailView extends ConsumerWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
-      ),
+      backgroundColor: Colors.transparent,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setModalState) {
-            return Padding(
+            final theme = Theme.of(context);
+            final isDark = theme.brightness == Brightness.dark;
+
+            return Container(
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.darkSurfaceElevated : AppColors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
+                boxShadow: AppShadows.premiumHeavy,
+              ),
               padding: EdgeInsets.only(
-                left: 16.w,
-                right: 16.w,
-                top: 16.h,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 16.h,
+                left: AppSpacing.lg,
+                right: AppSpacing.lg,
+                top: AppSpacing.lg,
+                bottom: MediaQuery.of(context).viewInsets.bottom + AppSpacing.xl,
               ),
               child: Form(
                 key: formKey,
@@ -184,53 +246,87 @@ class BorrowerDetailView extends ConsumerWidget {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Text(
-                        'Edit Borrower Profile',
-                        style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
+                      Center(
+                        child: Container(
+                          width: 40.w,
+                          height: 4.h,
+                          decoration: BoxDecoration(
+                            color: isDark ? AppColors.darkGrey : AppColors.lightGrey,
+                            borderRadius: AppRadius.circular,
+                          ),
+                        ),
                       ),
-                      SizedBox(height: 16.h),
-                      TextFormField(
+                      SizedBox(height: AppSpacing.lg),
+                      Text('Edit Borrower Profile', style: AppTypography.headline),
+                      SizedBox(height: AppSpacing.xl),
+                      
+                      PremiumTextField(
+                        label: 'Full Name',
                         controller: nameController,
-                        decoration: const InputDecoration(labelText: 'Full Name'),
+                        prefixIcon: const Icon(Icons.person_outline),
                         validator: (v) => v == null || v.trim().isEmpty ? 'Name is required' : null,
                       ),
-                      SizedBox(height: 12.h),
-                      TextFormField(
+                      PremiumTextField(
+                        label: 'Mobile Number',
                         controller: mobileController,
-                        decoration: const InputDecoration(labelText: 'Mobile Number'),
+                        prefixIcon: const Icon(Icons.phone_outlined),
                         keyboardType: TextInputType.phone,
                         validator: (v) => v == null || v.trim().isEmpty ? 'Mobile is required' : null,
                       ),
-                      SizedBox(height: 12.h),
-                      TextFormField(
+                      PremiumTextField(
+                        label: 'Address',
                         controller: addressController,
-                        decoration: const InputDecoration(labelText: 'Address'),
-                        maxLines: 2,
+                        prefixIcon: const Icon(Icons.home_outlined),
                       ),
-                      SizedBox(height: 12.h),
-                      TextFormField(
+                      PremiumTextField(
+                        label: 'Notes',
                         controller: notesController,
-                        decoration: const InputDecoration(labelText: 'Notes'),
-                        maxLines: 2,
+                        prefixIcon: const Icon(Icons.notes_outlined),
                       ),
-                      SizedBox(height: 12.h),
-                      DropdownButtonFormField<String>(
-                        value: status,
-                        decoration: const InputDecoration(labelText: 'Status'),
-                        items: const [
-                          DropdownMenuItem(value: 'ACTIVE', child: Text('Active')),
-                          DropdownMenuItem(value: 'INACTIVE', child: Text('Inactive')),
-                        ],
-                        onChanged: (v) {
-                          if (v != null) {
-                            setModalState(() {
-                              status = v;
-                            });
-                          }
-                        },
+                      
+                      Padding(
+                        padding: EdgeInsets.only(bottom: AppSpacing.md),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Status', style: AppTypography.titleMedium.copyWith(fontSize: 13.sp)),
+                            SizedBox(height: AppSpacing.sm),
+                            DropdownButtonFormField<String>(
+                              value: status,
+                              decoration: InputDecoration(
+                                prefixIcon: const Icon(Icons.info_outline),
+                                filled: true,
+                                fillColor: isDark ? AppColors.darkSurfaceElevated : AppColors.softWhite,
+                                contentPadding: EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 16.h),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: AppRadius.md,
+                                  borderSide: BorderSide(color: isDark ? AppColors.darkGrey : AppColors.lightGrey),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: AppRadius.md,
+                                  borderSide: const BorderSide(color: AppColors.emeraldGreen, width: 2),
+                                ),
+                              ),
+                              items: const [
+                                DropdownMenuItem(value: 'ACTIVE', child: Text('Active')),
+                                DropdownMenuItem(value: 'INACTIVE', child: Text('Inactive')),
+                              ],
+                              onChanged: (v) {
+                                if (v != null) {
+                                  setModalState(() {
+                                    status = v;
+                                  });
+                                }
+                              },
+                            ),
+                          ],
+                        ),
                       ),
-                      SizedBox(height: 20.h),
-                      ElevatedButton(
+                      
+                      SizedBox(height: AppSpacing.xl),
+                      PremiumButton(
+                        text: 'Update Profile',
+                        icon: Icons.check_circle_outline,
                         onPressed: () async {
                           if (formKey.currentState!.validate()) {
                             final success = await ref.read(borrowersProvider.notifier).updateBorrower(
@@ -250,7 +346,6 @@ class BorrowerDetailView extends ConsumerWidget {
                             }
                           }
                         },
-                        child: const Text('Update Profile'),
                       ),
                     ],
                   ),
@@ -272,7 +367,7 @@ class BorrowerDetailView extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Borrower Profile'),
+        title: Text('Borrower Profile', style: AppTypography.headline),
         actions: [
           detailAsync.when(
             data: (data) => isAdmin
@@ -284,6 +379,7 @@ class BorrowerDetailView extends ConsumerWidget {
             error: (_, __) => const SizedBox(),
             loading: () => const SizedBox(),
           ),
+          SizedBox(width: AppSpacing.sm),
         ],
       ),
       body: detailAsync.when(
@@ -300,197 +396,282 @@ class BorrowerDetailView extends ConsumerWidget {
             }
           }
 
-          return SingleChildScrollView(
-            padding: EdgeInsets.all(16.r),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Profile Details Card
-                Card(
-                  child: Padding(
-                    padding: EdgeInsets.all(16.r),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          final isActive = data['status'] == 'ACTIVE';
+
+          return CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.all(AppSpacing.md),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Profile Details Card
+                      PremiumCard(
+                        padding: EdgeInsets.all(AppSpacing.lg),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              data['name'],
-                              style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
-                            ),
-                            Container(
-                              padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
-                              decoration: BoxDecoration(
-                                color: data['status'] == 'ACTIVE' ? Colors.green.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(10.r),
-                              ),
-                              child: Text(
-                                data['status'],
-                                style: TextStyle(
-                                  fontSize: 10.sp,
-                                  color: data['status'] == 'ACTIVE' ? Colors.green : Colors.grey,
-                                  fontWeight: FontWeight.bold,
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                  children: [
+                                    CircleAvatar(
+                                      radius: 28.r,
+                                      backgroundColor: isActive ? AppColors.emeraldGreen.withOpacity(0.1) : AppColors.textLight.withOpacity(0.1),
+                                      child: Text(
+                                        data['name'].toString().substring(0, 1).toUpperCase(),
+                                        style: AppTypography.headline.copyWith(
+                                          color: isActive ? AppColors.emeraldGreen : AppColors.textLight,
+                                        ),
+                                      ),
+                                    ),
+                                    SizedBox(width: AppSpacing.md),
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(data['name'], style: AppTypography.headline),
+                                        SizedBox(height: 4.h),
+                                        Container(
+                                          padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                                          decoration: BoxDecoration(
+                                            color: isActive ? AppColors.success.withOpacity(0.1) : AppColors.warning.withOpacity(0.1),
+                                            borderRadius: AppRadius.sm,
+                                          ),
+                                          child: Text(
+                                            data['status'],
+                                            style: AppTypography.caption.copyWith(
+                                              color: isActive ? AppColors.success : AppColors.warning,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
                                 ),
-                              ),
+                              ],
                             ),
-                          ],
-                        ),
-                        SizedBox(height: 8.h),
-                        Row(
-                          children: [
-                            const Icon(Icons.phone_outlined, size: 16),
-                            SizedBox(width: 8.w),
-                            Text(data['mobile'], style: TextStyle(fontSize: 14.sp)),
-                          ],
-                        ),
-                        if (data['address'] != null && data['address'].toString().isNotEmpty) ...[
-                          SizedBox(height: 8.h),
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Icon(Icons.home_outlined, size: 16),
-                              SizedBox(width: 8.w),
-                              Expanded(
-                                child: Text(
-                                  data['address'],
-                                  style: TextStyle(fontSize: 13.sp),
-                                ),
+                            SizedBox(height: AppSpacing.lg),
+                            Row(
+                              children: [
+                                Icon(Icons.phone_outlined, size: 20.r, color: AppColors.textLight),
+                                SizedBox(width: AppSpacing.sm),
+                                Text(data['mobile'], style: AppTypography.titleMedium),
+                              ],
+                            ),
+                            if (data['address'] != null && data['address'].toString().isNotEmpty) ...[
+                              SizedBox(height: AppSpacing.md),
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Icon(Icons.home_outlined, size: 20.r, color: AppColors.textLight),
+                                  SizedBox(width: AppSpacing.sm),
+                                  Expanded(
+                                    child: Text(
+                                      data['address'],
+                                      style: AppTypography.bodyMedium,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
+                            if (data['notes'] != null && data['notes'].toString().isNotEmpty) ...[
+                              SizedBox(height: AppSpacing.md),
+                              Divider(color: Theme.of(context).dividerColor.withOpacity(0.1)),
+                              SizedBox(height: AppSpacing.sm),
+                              Text(
+                                'Notes: ${data['notes']}',
+                                style: AppTypography.bodyMedium.copyWith(fontStyle: FontStyle.italic, color: AppColors.textLight),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      SizedBox(height: AppSpacing.xl),
+
+                      // Financial Overview Metrics
+                      Text('Financial Overview', style: AppTypography.titleLarge),
+                      SizedBox(height: AppSpacing.md),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: PremiumCard(
+                              padding: EdgeInsets.all(AppSpacing.md),
+                              backgroundColor: AppColors.info,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(Icons.arrow_upward, color: AppColors.white.withOpacity(0.8), size: 16.r),
+                                      SizedBox(width: AppSpacing.xs),
+                                      Text('Total Lent', style: AppTypography.caption.copyWith(color: AppColors.white.withOpacity(0.8))),
+                                    ],
+                                  ),
+                                  SizedBox(height: AppSpacing.sm),
+                                  FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      currencyFormatter.format(totalLent),
+                                      style: AppTypography.headline.copyWith(color: AppColors.white),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: AppSpacing.md),
+                          Expanded(
+                            child: PremiumCard(
+                              padding: EdgeInsets.all(AppSpacing.md),
+                              backgroundColor: AppColors.emeraldGreen,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(Icons.account_balance_wallet, color: AppColors.white.withOpacity(0.8), size: 16.r),
+                                      SizedBox(width: AppSpacing.xs),
+                                      Text('Outstanding', style: AppTypography.caption.copyWith(color: AppColors.white.withOpacity(0.8))),
+                                    ],
+                                  ),
+                                  SizedBox(height: AppSpacing.sm),
+                                  FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      currencyFormatter.format(activeBalance),
+                                      style: AppTypography.headline.copyWith(color: AppColors.white),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
                         ],
-                        if (data['notes'] != null && data['notes'].toString().isNotEmpty) ...[
-                          SizedBox(height: 8.h),
-                          const Divider(),
+                      ),
+                      SizedBox(height: AppSpacing.xl),
+
+                      // Loans Header
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
                           Text(
-                            'Notes: ${data['notes']}',
-                            style: TextStyle(fontSize: 12.sp, fontStyle: FontStyle.italic, color: Colors.grey),
+                            'Active Loans (${loans.length})',
+                            style: AppTypography.titleLarge,
                           ),
+                          if (isAdmin)
+                            PremiumButton(
+                              text: 'Add Loan',
+                              type: ButtonType.text,
+                              isFullWidth: false,
+                              onPressed: () => _openAddLoanSheet(context, ref),
+                            ),
                         ],
-                      ],
-                    ),
-                  ),
-                ),
-                SizedBox(height: 20.h),
-
-                // Financial Overview Metrics
-                Row(
-                  children: [
-                    Expanded(
-                      child: Card(
-                        child: Padding(
-                          padding: EdgeInsets.all(12.r),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Total Principal Lent', style: TextStyle(fontSize: 11.sp, color: Colors.grey)),
-                              SizedBox(height: 4.h),
-                              Text(currencyFormatter.format(totalLent), style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                        ),
                       ),
-                    ),
-                    SizedBox(width: 10.w),
-                    Expanded(
-                      child: Card(
-                        child: Padding(
-                          padding: EdgeInsets.all(12.r),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Outstanding Balance', style: TextStyle(fontSize: 11.sp, color: Colors.grey)),
-                              SizedBox(height: 4.h),
-                              Text(
-                                currencyFormatter.format(activeBalance),
-                                style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold, color: Colors.indigo),
+                      SizedBox(height: AppSpacing.sm),
+
+                      if (loans.isEmpty)
+                        PremiumCard(
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(vertical: AppSpacing.xl),
+                            child: Center(
+                              child: Column(
+                                children: [
+                                  Opacity(opacity: 0.5, child: Icon(Icons.request_page_outlined, size: 48.r, color: AppColors.textLight)),
+                                  SizedBox(height: AppSpacing.md),
+                                  Text('No active loans for this borrower.', style: AppTypography.bodyMedium.copyWith(color: AppColors.textLight)),
+                                ],
                               ),
-                            ],
+                            ),
                           ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 24.h),
+                        )
+                      else
+                        ListView.separated(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: loans.length,
+                          separatorBuilder: (context, index) => SizedBox(height: AppSpacing.sm),
+                          itemBuilder: (context, index) {
+                            final loan = loans[index];
+                            final isLoanActive = loan.status == 'ACTIVE';
 
-                // Loans Header
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Loans List (${loans.length})',
-                      style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold),
-                    ),
-                    if (isAdmin)
-                      TextButton.icon(
-                        onPressed: () => _openAddLoanSheet(context, ref),
-                        icon: const Icon(Icons.add, size: 16),
-                        label: const Text('Add Loan'),
-                      ),
-                  ],
-                ),
-                SizedBox(height: 8.h),
-
-                if (loans.isEmpty)
-                  Center(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(vertical: 32.h),
-                      child: Text('No loans active for this borrower.', style: TextStyle(fontSize: 13.sp, color: Colors.grey)),
-                    ),
-                  )
-                else
-                  ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: loans.length,
-                    itemBuilder: (context, index) {
-                      final loan = loans[index];
-                      return Card(
-                        child: ListTile(
-                          onTap: () {
-                            context.push('/loans/${loan.id}');
+                            return PremiumCard(
+                              padding: EdgeInsets.zero,
+                              onTap: () => context.push('/loans/${loan.id}'),
+                              child: Padding(
+                                padding: EdgeInsets.all(AppSpacing.md),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      padding: EdgeInsets.all(12.r),
+                                      decoration: BoxDecoration(
+                                        color: isLoanActive ? AppColors.info.withOpacity(0.1) : AppColors.textLight.withOpacity(0.1),
+                                        borderRadius: AppRadius.md,
+                                      ),
+                                      child: Icon(
+                                        isLoanActive ? Icons.trending_up : Icons.check_circle_outline,
+                                        color: isLoanActive ? AppColors.info : AppColors.textLight,
+                                        size: 24.r,
+                                      ),
+                                    ),
+                                    SizedBox(width: AppSpacing.md),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Text(
+                                                currencyFormatter.format(loan.loanAmount),
+                                                style: AppTypography.titleMedium,
+                                              ),
+                                              Text(
+                                                '${loan.interestRate}% (${loan.interestType == 'FIXED' ? 'Fixed' : 'Reducing'})',
+                                                style: AppTypography.caption,
+                                              ),
+                                            ],
+                                          ),
+                                          SizedBox(height: 4.h),
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Text(
+                                                'Balance: ${currencyFormatter.format(loan.currentBalance)}',
+                                                style: AppTypography.bodyMedium.copyWith(
+                                                  color: isLoanActive ? AppColors.emeraldGreen : AppColors.textLight,
+                                                  fontWeight: isLoanActive ? FontWeight.w600 : FontWeight.normal,
+                                                ),
+                                              ),
+                                              Text(
+                                                DateFormat('dd MMM yy').format(loan.loanDate),
+                                                style: AppTypography.caption,
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    SizedBox(width: AppSpacing.sm),
+                                    Icon(Icons.chevron_right, size: 20.r, color: AppColors.textLight),
+                                  ],
+                                ),
+                              ),
+                            );
                           },
-                          leading: CircleAvatar(
-                            backgroundColor: loan.status == 'ACTIVE' ? Colors.blue.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
-                            child: Icon(
-                              loan.status == 'ACTIVE' ? Icons.trending_up : Icons.check_circle_outline,
-                              color: loan.status == 'ACTIVE' ? Colors.blue : Colors.grey,
-                              size: 20.r,
-                            ),
-                          ),
-                          title: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                currencyFormatter.format(loan.loanAmount),
-                                style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.bold),
-                              ),
-                              Text(
-                                '${loan.interestRate}% (${loan.interestType == 'FIXED' ? 'Fixed' : 'Reducing'})',
-                                style: TextStyle(fontSize: 12.sp, color: Colors.grey),
-                              ),
-                            ],
-                          ),
-                          subtitle: Padding(
-                            padding: EdgeInsets.only(top: 4.h),
-                            child: Text(
-                              'Balance: ${currencyFormatter.format(loan.currentBalance)} • Start: ${DateFormat('dd MMM yyyy').format(loan.loanDate)}',
-                              style: TextStyle(fontSize: 11.sp),
-                            ),
-                          ),
-                          trailing: Icon(Icons.chevron_right, size: 18.r),
                         ),
-                      );
-                    },
+                    ],
                   ),
-              ],
-            ),
+                ),
+              ),
+            ],
           );
         },
-        error: (err, _) => Center(child: Text('Error loading borrower: $err')),
-        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (err, _) => Center(child: Text('Error loading borrower: $err', style: AppTypography.bodyLarge.copyWith(color: AppColors.danger))),
+        loading: () => const Center(child: CircularProgressIndicator(color: AppColors.emeraldGreen)),
       ),
     );
   }

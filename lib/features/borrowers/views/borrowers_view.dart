@@ -2,8 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 import '../providers/borrowers_provider.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../../core/themes/app_colors.dart';
+import '../../../core/themes/app_spacing.dart';
+import '../../../core/themes/app_typography.dart';
+import '../../../core/widgets/app_logo.dart';
+import '../../../core/widgets/cards/premium_card.dart';
+import '../../../core/widgets/inputs/premium_text_field.dart';
+import '../../../core/widgets/buttons/premium_button.dart';
 
 class BorrowersView extends ConsumerStatefulWidget {
   const BorrowersView({super.key});
@@ -45,16 +53,22 @@ class _BorrowersViewState extends ConsumerState<BorrowersView> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
-      ),
+      backgroundColor: Colors.transparent,
       builder: (context) {
-        return Padding(
+        final theme = Theme.of(context);
+        final isDark = theme.brightness == Brightness.dark;
+
+        return Container(
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.darkSurfaceElevated : AppColors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
+            boxShadow: AppShadows.premiumHeavy,
+          ),
           padding: EdgeInsets.only(
-            left: 16.w,
-            right: 16.w,
-            top: 16.h,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 16.h,
+            left: AppSpacing.lg,
+            right: AppSpacing.lg,
+            top: AppSpacing.lg,
+            bottom: MediaQuery.of(context).viewInsets.bottom + AppSpacing.xl,
           ),
           child: Form(
             key: formKey,
@@ -63,49 +77,46 @@ class _BorrowersViewState extends ConsumerState<BorrowersView> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(
-                    'Add New Borrower',
-                    style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
-                  ),
-                  SizedBox(height: 16.h),
-                  TextFormField(
-                    controller: nameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Full Name',
-                      prefixIcon: Icon(Icons.person),
+                  Center(
+                    child: Container(
+                      width: 40.w,
+                      height: 4.h,
+                      decoration: BoxDecoration(
+                        color: isDark ? AppColors.darkGrey : AppColors.lightGrey,
+                        borderRadius: AppRadius.circular,
+                      ),
                     ),
+                  ),
+                  SizedBox(height: AppSpacing.lg),
+                  Text('Add New Borrower', style: AppTypography.headline),
+                  SizedBox(height: AppSpacing.xl),
+                  PremiumTextField(
+                    label: 'Full Name',
+                    controller: nameController,
+                    prefixIcon: const Icon(Icons.person_outline),
                     validator: (v) => v == null || v.trim().isEmpty ? 'Name is required' : null,
                   ),
-                  SizedBox(height: 12.h),
-                  TextFormField(
+                  PremiumTextField(
+                    label: 'Mobile Number',
                     controller: mobileController,
-                    decoration: const InputDecoration(
-                      labelText: 'Mobile Number',
-                      prefixIcon: Icon(Icons.phone),
-                    ),
+                    prefixIcon: const Icon(Icons.phone_outlined),
                     keyboardType: TextInputType.phone,
                     validator: (v) => v == null || v.trim().isEmpty ? 'Mobile is required' : null,
                   ),
-                  SizedBox(height: 12.h),
-                  TextFormField(
+                  PremiumTextField(
+                    label: 'Address (Optional)',
                     controller: addressController,
-                    decoration: const InputDecoration(
-                      labelText: 'Address (Optional)',
-                      prefixIcon: Icon(Icons.home),
-                    ),
-                    maxLines: 2,
+                    prefixIcon: const Icon(Icons.home_outlined),
                   ),
-                  SizedBox(height: 12.h),
-                  TextFormField(
+                  PremiumTextField(
+                    label: 'Notes / Remarks (Optional)',
                     controller: notesController,
-                    decoration: const InputDecoration(
-                      labelText: 'Notes / Remarks (Optional)',
-                      prefixIcon: Icon(Icons.notes),
-                    ),
-                    maxLines: 2,
+                    prefixIcon: const Icon(Icons.notes_outlined),
                   ),
-                  SizedBox(height: 20.h),
-                  ElevatedButton(
+                  SizedBox(height: AppSpacing.xl),
+                  PremiumButton(
+                    text: 'Save Borrower',
+                    icon: Icons.check_circle_outline,
                     onPressed: () async {
                       if (formKey.currentState!.validate()) {
                         final success = await ref.read(borrowersProvider.notifier).createBorrower(
@@ -122,7 +133,6 @@ class _BorrowersViewState extends ConsumerState<BorrowersView> {
                         }
                       }
                     },
-                    child: const Text('Save Borrower'),
                   ),
                 ],
               ),
@@ -139,117 +149,172 @@ class _BorrowersViewState extends ConsumerState<BorrowersView> {
     final userState = ref.watch(authProvider);
     final isAdmin = userState.user?.isAdmin ?? false;
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
       body: Column(
         children: [
           // Search Input
           Padding(
-            padding: EdgeInsets.all(12.r),
+            padding: EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.md),
             child: TextField(
               controller: _searchController,
+              style: AppTypography.bodyLarge,
               decoration: InputDecoration(
                 hintText: 'Search borrowers by name or mobile...',
-                prefixIcon: const Icon(Icons.search),
+                hintStyle: AppTypography.bodyLarge.copyWith(color: AppColors.textLight),
+                prefixIcon: Icon(Icons.search, color: AppColors.textLight, size: 20.r),
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
-                        icon: const Icon(Icons.clear),
+                        icon: Icon(Icons.clear, color: AppColors.textLight, size: 20.r),
                         onPressed: () {
                           _searchController.clear();
                           ref.read(borrowersProvider.notifier).updateSearch('');
                         },
                       )
                     : null,
+                filled: true,
+                fillColor: isDark ? AppColors.darkSurfaceElevated : AppColors.softWhite,
+                contentPadding: EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 14.h),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(30.r),
+                  borderRadius: AppRadius.circular,
+                  borderSide: BorderSide.none,
                 ),
-                contentPadding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 8.h),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: AppRadius.circular,
+                  borderSide: BorderSide(color: isDark ? AppColors.darkGrey : AppColors.lightGrey.withOpacity(0.5)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: AppRadius.circular,
+                  borderSide: const BorderSide(color: AppColors.emeraldGreen, width: 2),
+                ),
               ),
               onChanged: (v) {
                 ref.read(borrowersProvider.notifier).updateSearch(v);
               },
             ),
           ),
+          
           // Borrowers List
           Expanded(
             child: RefreshIndicator(
               onRefresh: () async {
                 await ref.read(borrowersProvider.notifier).fetchBorrowers(refresh: true);
               },
-              child: state.items.isEmpty && !state.isLoading
-                  ? Center(
-                      child: Text(
-                        'No borrowers found.',
-                        style: TextStyle(fontSize: 14.sp, color: Colors.grey),
-                      ),
-                    )
-                  : ListView.builder(
-                      controller: _scrollController,
-                      itemCount: state.items.length + (state.isMoreLoading ? 1 : 0),
-                      itemBuilder: (context, index) {
-                        if (index == state.items.length) {
-                          return Padding(
-                            padding: EdgeInsets.symmetric(vertical: 16.h),
-                            child: const Center(child: CircularProgressIndicator()),
-                          );
-                        }
-
-                        final item = state.items[index];
-                        return Card(
-                          margin: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
-                          child: ListTile(
-                            onTap: () {
-                              context.push('/borrowers/${item.id}');
-                            },
-                            leading: CircleAvatar(
-                              backgroundColor: item.status == 'ACTIVE'
-                                  ? theme.colorScheme.primary.withOpacity(0.1)
-                                  : Colors.grey.withOpacity(0.1),
-                              child: Text(
-                                item.name.substring(0, 1).toUpperCase(),
-                                style: TextStyle(
-                                  color: item.status == 'ACTIVE' ? theme.colorScheme.primary : Colors.grey,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            title: Row(
+              color: AppColors.emeraldGreen,
+              child: Skeletonizer(
+                enabled: state.isLoading && state.items.isEmpty,
+                child: state.items.isEmpty && !state.isLoading
+                    ? ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        children: [
+                          SizedBox(height: 100.h),
+                          Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Expanded(
-                                  child: Text(
-                                    item.name,
-                                    style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w600),
-                                  ),
+                                Opacity(opacity: 0.5, child: Icon(Icons.people_outline, size: 64.r, color: AppColors.textLight)),
+                                SizedBox(height: AppSpacing.md),
+                                Text(
+                                  'No borrowers found.',
+                                  style: AppTypography.titleMedium.copyWith(color: AppColors.textLight),
                                 ),
-                                Container(
-                                  padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
-                                  decoration: BoxDecoration(
-                                    color: item.status == 'ACTIVE' ? Colors.green.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(10.r),
-                                  ),
-                                  child: Text(
-                                    item.status,
-                                    style: TextStyle(
-                                      fontSize: 10.sp,
-                                      color: item.status == 'ACTIVE' ? Colors.green : Colors.grey,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
+                                SizedBox(height: AppSpacing.sm),
+                                Text(
+                                  'Try adjusting your search.',
+                                  style: AppTypography.bodyMedium.copyWith(color: AppColors.textLight),
                                 ),
                               ],
                             ),
-                            subtitle: Padding(
-                              padding: EdgeInsets.only(top: 4.h),
-                              child: Text(
-                                '${item.mobile} • ${item.loanCount} Loan(s)',
-                                style: TextStyle(fontSize: 12.sp),
+                          ),
+                        ],
+                      )
+                    : ListView.separated(
+                        controller: _scrollController,
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+                        itemCount: state.items.length + (state.isMoreLoading ? 1 : 0),
+                        separatorBuilder: (context, index) => SizedBox(height: AppSpacing.sm),
+                        itemBuilder: (context, index) {
+                          if (index == state.items.length) {
+                            return Padding(
+                              padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),
+                              child: const Center(
+                                child: CircularProgressIndicator(color: AppColors.emeraldGreen),
+                              ),
+                            );
+                          }
+
+                          final item = state.items[index];
+                          final isActive = item.status == 'ACTIVE';
+
+                          return PremiumCard(
+                            padding: EdgeInsets.zero,
+                            onTap: () => context.push('/borrowers/${item.id}'),
+                            child: Padding(
+                              padding: EdgeInsets.all(AppSpacing.md),
+                              child: Row(
+                                children: [
+                                  CircleAvatar(
+                                    radius: 24.r,
+                                    backgroundColor: isActive
+                                        ? AppColors.emeraldGreen.withOpacity(0.1)
+                                        : AppColors.textLight.withOpacity(0.1),
+                                    child: Text(
+                                      item.name.substring(0, 1).toUpperCase(),
+                                      style: AppTypography.titleLarge.copyWith(
+                                        color: isActive ? AppColors.emeraldGreen : AppColors.textLight,
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(width: AppSpacing.md),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: Text(
+                                                item.name,
+                                                style: AppTypography.titleMedium,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                            Container(
+                                              padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                                              decoration: BoxDecoration(
+                                                color: isActive ? AppColors.success.withOpacity(0.1) : AppColors.warning.withOpacity(0.1),
+                                                borderRadius: AppRadius.sm,
+                                              ),
+                                              child: Text(
+                                                item.status,
+                                                style: AppTypography.caption.copyWith(
+                                                  color: isActive ? AppColors.success : AppColors.warning,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        SizedBox(height: 4.h),
+                                        Text(
+                                          '${item.mobile} • ${item.loanCount} Loan(s)',
+                                          style: AppTypography.bodyMedium.copyWith(color: AppColors.textLight),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  SizedBox(width: AppSpacing.sm),
+                                  Icon(Icons.chevron_right, color: AppColors.textLight, size: 20.r),
+                                ],
                               ),
                             ),
-                            trailing: Icon(Icons.chevron_right, size: 20.r),
-                          ),
-                        );
-                      },
-                    ),
+                          );
+                        },
+                      ),
+              ),
             ),
           ),
         ],
@@ -257,7 +322,10 @@ class _BorrowersViewState extends ConsumerState<BorrowersView> {
       floatingActionButton: isAdmin
           ? FloatingActionButton(
               onPressed: _openAddBorrowerSheet,
-              child: const Icon(Icons.person_add),
+              backgroundColor: AppColors.emeraldGreen,
+              foregroundColor: AppColors.white,
+              elevation: 4,
+              child: const Icon(Icons.person_add_alt_1),
             )
           : null,
     );
